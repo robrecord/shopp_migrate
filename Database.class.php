@@ -44,7 +44,7 @@ class PDO_Database
 	public function query($sql) {
 
 		try {
-		    $this->_db->query($sql);
+		    return $this->_db->query($sql);
 		} catch(PDOException $ex) {
 	        $this->exception("Could not query database!", $ex);
 	        return false;
@@ -62,39 +62,36 @@ class PDO_Database
 	public function fetch_field($qid) {
 	}
 
-	public function fetch_array(&$query=null) {
-		if (!$query) $query = &$this->_query;
-		$query->fetch();
-	    return $data;
+	public function fetch_array($query = null) {
+		if ($query) $request = $this->query($query);
+		return $request->fetch();
 	}
 
-	public function fetch_array_assoc(&$query=null) {
-		if (!$query) $query = &$this->_query;
-		$query->fetch(PDO::FETCH_ASSOC);
-	    return $data;
+	public function fetch_array_assoc($query = null) {
+		if ($query) $request = $this->query($query);
+		return $request->fetch(PDO::FETCH_ASSOC);
 	}
 
-	public function fetch_all_array($sql, $assoc = true) {
-		$this->_query = $this->_db->query($sql);
-		return $this->_query->fetchAll( $assoc ? PDO::FETCH_ASSOC : '' );
+	public function fetch_all_array($query = null, $assoc = true) {
+		if ($query) $request = $this->query($query);
+		return $request->fetchAll( $assoc ? PDO::FETCH_ASSOC : '' );
 	}
 
 	public function init_table($table_name, $class_name = 'Table')
 	{
 		if (!isset($this->$table_name)) {
 			if (class_exists(ucfirst($table_name).'_'.$class_name)) {
-			    $table = new $class_name($this);
+			    $this->$table_name = new $class_name(&$this);
 			}
-			else $table = new $class_name($this, $table_name, $this->_table_prefix);
-			$this->$table_name = $table;
+			else $this->$table_name = new $class_name(&$this, $table_name, $this->_table_prefix);
 		}
 		return $this->$table_name;
 	}
 
 	public function load_table($table_name) {
 		$table = $this->init_table($table_name);
-		$table->_result = $this->query("SELECT * FROM {$table->_name}");
-		$table->_data = $this->fetch_all_array($table->_result);
+		$request = $this->_db->query("SELECT * FROM {$table->_name}");
+		$table->_data = $request->fetchAll(PDO::FETCH_ASSOC);
 		if (count($table->_data) < 1) echo "no data found in $table_name, {$this->_name}";
 		return $table;
 	}

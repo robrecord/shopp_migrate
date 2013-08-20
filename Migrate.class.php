@@ -32,181 +32,125 @@ class Shopp_Migrate_Database extends Shopp_Database {
 */
 class Shopp_Migrate
 {
-	// public $Shopp_125;
-	// public $Shopp_119;
-
-	public $Shopp;
+	public $dbOld;
+	public $dbNew;
+	public $dbTemp;
 
 	function __construct()
 	{
-		// $this->Shopp_119 = new Shopp_119_Database();
-		// $this->Shopp_125 = new Shopp_125_Database();
-		$this->Shopp = new stdClass;
-		$this->Shopp->old = new Shopp_119_Database();
-		$this->Shopp->new = new Shopp_125_Database();
-
-		$this->Shopp->converted = new Shopp_Migrate_Database();
+		$this->dbOld = new Shopp_119_Database();
+		$this->dbNew = new Shopp_125_Database();
+		$this->dbTemp = new Shopp_Migrate_Database();
 	}
 
-	// public function test1()
-	// {
-	// 	$db = &$this->Shopp_119;
-	// 	$array = $db->fetch_all_array("SELECT * FROM wp_shopp_meta");
-	// 	var_dump($array);
-	// }
-	// public function test2()
-	// {
-	// 	$db = &$this->Shopp_125;
-	// 	$array = $db->fetch_all_array("SELECT * FROM wp_shopp_meta");
-	// 	var_dump($array);
-	// }
-	// public function test3()
-	// {
-	// 	$db = &$this->Shopp_119;
-	// 	$result = $db->query("SELECT * FROM wp_shopp_meta");
-	// 	$data = new Table('id');
-	// 	while ($values = $db->fetch_array_assoc($result)) {
-	// 		$data->add_row($values);
-	// 	}
-
-	// 	$data->organize('parent');
-	// 	var_dump($data->data_organized);
-	// }
-	// public function test4()
-	// {
-	// 	$table_name = 'shopp_price';
-
-	// 	$dbOld = &$this->Shopp_119;
-	// 	$tableOld = $dbOld->init_table($table_name,'id');
-	// 	$result = $dbOld->query("SELECT * FROM {$tableOld->name}");
-	// 	while ($values = $dbOld->fetch_array_assoc($result)) {
-	// 		$tableOld->add_row($values);
-	// 	}
-	// 	// $data->data['options']
-	// 	// $data->organize('parent');
-	// 	var_dump($dbOld);
-	// 	// var_dump($tableOld);
-
-	// 	$dbNew = &$this->Shopp_125;
-	// 	$tableNew = $dbNew->init_table($table_name,'id');
-	// 	$result = $dbNew->query("SELECT * FROM {$tableNew->name}");
-	// 	while ($values = $dbNew->fetch_array_assoc($result)) {
-	// 		$tableNew->add_row($values);
-	// 	}
-	// 	var_dump($dbNew);
-
-	// 	// var_dump($tableNew);
-
-	// }
-
-	// public function test5()
-	// {
-	// 	$table_name = 'shopp_price';
-
-	// 	$tableOld = $this->Shopp_119->load_table($table_name);
-	// 	$tableNew = $this->Shopp_125->load_table($table_name);
-
-	// 	var_dump($tableOld);
-	// 	var_dump($tableNew);
-
-	// }
-
-	// public function test6()
-	// {
-	// 	$table_name = 'shopp_price';
-
-	// 	$tableOld = $this->Shopp->old->load_table($table_name);
-	// 	$tableNew = $this->Shopp->new>load_table($table_name);
-
-	// 	var_dump($tableOld);
-	// 	var_dump($tableNew);
-
-	// }
-
-
-	public function convert($table_name)
+	public function convert($table_name, $compare = false)
 	{
-		$oldDB = &$this->Shopp->old;
-		$newDB = &$this->Shopp->new;
-		$conDB = &$this->Shopp->converted;
-
-
-		$oldDB->load_table($table_name);
-		$newDB->load_table($table_name);
-		$conDB->load_table($table_name);
-
-
+		$this->compare = $compare;
 
 		switch ($table_name) {
 			case 'shopp_meta':
+				$this->convert_shopp_meta();
+				break;
 
-				// split meta data
-				$oldDB->$table_name->objectify();
-				$newDB->$table_name->objectify();
-
-				// SETTINGS
-
-				$oldDB->load_table('shopp_setting');
-
-				$old_shopp_meta = &$oldDB->$table_name;
-				$new_shopp_meta = &$newDB->$table_name;
-				$converted_shopp_meta = &$conDB->$table_name;
-
-				$converted_shopp_meta->setting = $oldDB->shopp_setting->order_by('name');
-
-				array_walk($converted_shopp_meta->setting, array($this, 'convert_shopp_setting'));
-				array_walk($converted_shopp_meta->setting, array($this, 'reorder_by_keys'),  $new_shopp_meta->_data[0]);
-
-				// $converted_shopp_meta->data = array_merge($settings, $table->old->data);
-
-				// $this->order_by_columns($converted_shopp_meta->data);
-				// $this->order_by_columns($table->new->data);
-
-				// IMAGES
-
-				// get image storage id
-				$result = $oldDB->query("SELECT `id` FROM wp_shopp_setting WHERE `name` = 'image_storage'");
-				$image_storage = $oldDB->fetch_array($result);
-				$image_storage_id = $image_storage[0];
-
-				// get original images
-				$result = $oldDB->query("SELECT `id` FROM wp_shopp_meta WHERE `name` = 'original'");
-				while ($values = $oldDB->fetch_array($result)) {
-					$originals_ids[] = $values[0];
-				}
-
-				$converted_shopp_meta->image = $old_shopp_meta->image;
-
-				// $sql = "INSET INTO "
-
-				// set original image parent ids
-				foreach ($converted_shopp_meta->image as &$values) {
-					if (in_array($values['id'], $originals_ids)) {
-						$values['parent'] = $image_storage_id;
-					}
-				}
-				foreach ($converted_shopp_meta->image as $row) {
-					$converted_shopp_meta->insert($row);
-				}
-
+			case 'shopp_setting':
+				$this->convert_shopp_setting();
 				break;
 
 			default:
-				$converted_shopp_meta->_data = $table->old->_data;
-				array_walk($converted_shopp_meta->_data, array($this, 'convert_'.$table_name));
+				$this->load_all_tables($table_name);
+
+				$this->dbTemp->$table_name->_data = $this->dbNew->$table_name->_data;
+				array_walk($this->dbTemp->$table_name->_data, array($this, 'convert_'.$table_name));
 				break;
 		}
 
-		$this->compare($converted_shopp_meta->image, $new_shopp_meta->image);
-		// $this->compare($converted_shopp_meta->setting, $new_shopp_meta->setting);
 
-		$converted_shopp_meta->image->save();
+	}
 
-		return $converted_shopp_meta;
+	public function load_all_tables($table_name)
+	{
+		$this->dbOld->load_table($table_name);
+		$this->dbNew->load_table($table_name);
+		$this->dbTemp->load_table($table_name);
+	}
+
+	public function convert_shopp_setting()
+	{
+		$this->dbOld->load_table('shopp_setting');
+		$this->dbNew->load_table('shopp_meta');
+		$this->dbTemp->load_table('shopp_meta');
+
+		$old_shopp_setting = &$this->dbOld->shopp_setting;
+		$new_shopp_meta = $this->dbNew->shopp_meta->order_by('id');
+		$working_shopp_meta = &$this->dbTemp->shopp_meta;
+
+		// $new_shopp_meta->objectify();
+
+		$working_shopp_meta->setting = $new_shopp_meta;
+
+		array_walk($working_shopp_meta->setting, array($this, 'convert_shopp_setting_row'));
+		array_walk($working_shopp_meta->setting, array($this, 'reorder_by_keys'),  $new_shopp_meta[0]);
+
+		// $working_shopp_meta->data = array_merge($settings, $table->old->data);
+
+		// $this->order_by_columns($working_shopp_meta->data);
+		// $this->order_by_columns($table->new->data);
+
+		foreach ($working_shopp_meta->setting as $row) {
+			$working_shopp_meta->insert($row);
+		}
+
+		if ($this->compare) $this->compare($this->dbOld->shopp_setting, $this->dbTemp->shopp_meta, $this->dbNew->shopp_meta);
+	}
+
+	public function convert_shopp_meta()
+	{
+		$this->load_all_tables('shopp_meta');
+
+		$old_shopp_meta = &$this->dbOld->shopp_meta;
+		$new_shopp_meta = &$this->dbNew->shopp_meta;
+		$working_shopp_meta = &$this->dbTemp->shopp_meta;
+
+		// split meta data
+		$old_shopp_meta->objectify();
+		$new_shopp_meta->objectify();
+
+		// IMAGES
+
+		// get image storage id
+		$request = $this->dbOld->query("SELECT `id` FROM wp_shopp_setting WHERE `name` = 'image_storage'");
+		$image_storage = $request->fetch();
+		$image_storage_id = $image_storage[0];
+
+		// get original images
+		$request = $this->dbOld->query("SELECT `id` FROM wp_shopp_meta WHERE `name` = 'original'");
+		while ($values = $request->fetch()) {
+			$originals_ids[] = $values[0];
+		}
+
+		$working_shopp_meta->image = $old_shopp_meta->image;
+
+		// $sql = "INSET INTO "
+
+		// set original image parent ids
+		foreach ($working_shopp_meta->image as &$values) {
+			if (in_array($values['id'], $originals_ids)) {
+				$values['parent'] = $image_storage_id;
+			}
+		}
+		foreach ($working_shopp_meta->image as $row) {
+			$working_shopp_meta->insert($row);
+		}
+
+		// $working_shopp_meta->image->save();
+
+		if ($this->compare) $this->compare($this->dbTemp->shopp_meta, $this->dbNew->$shopp_meta);
+
 	}
 
 
-	public function convert_shopp_price(&$row)
+
+	public function convert_shopp_price_row(&$row)
 	{
 		$row['cost'] = '0.000000';
 		unset($row['dimensions']);
@@ -219,7 +163,7 @@ class Shopp_Migrate
 		ksort($row);
 		return $row;
 	}
-	public function convert_shopp_setting(&$row)
+	public function convert_shopp_setting_row(&$row)
 	{
 		unset($row['autoload']);
 		$row['context'] = 'shopp';
@@ -230,7 +174,12 @@ class Shopp_Migrate
 
 		return $row;
 	}
+	public function convert_shopp_meta_row(&$row)
+	{
 
+		ksort($row);
+		return $row;
+	}
 	public function reorder_by_keys(&$row, $row_key, $keys)
 	{
 		$key_order = array_keys($keys);
@@ -251,23 +200,11 @@ class Shopp_Migrate
 		// Add $data as the last parameter, to sort by the common key
 		array_multisort($type, SORT_ASC, $name, SORT_ASC, $data);
 	}
-	public function convert_shopp_meta(&$row)
-	{
-		// $row['cost'] = '0.000000';
-		// unset($row['dimensions']);
-		// unset($row['donation']);
-		// $row['discounts'] = '';
-		// unset($row['options']);
-		// $row['promoprice'] = '0.000000';
-		// $row['stocked'] = '0';
-		// unset($row['weight']);
-		ksort($row);
-		return $row;
-	}
-	function compare($converted, $new) {
+
+	function compare($working, $new) {
 		?>
 		<div class="compare">
-			<div><?php var_dump($converted) ?></div>
+			<div><?php var_dump($working) ?></div>
 			<div><?php var_dump($new) ?></div>
 		</div>
 

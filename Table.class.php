@@ -11,17 +11,14 @@ class Table extends Data_Set
 	function __construct(&$db, $name = null, $prefix = "")
 	{
 		if ($name) $this->_name = $prefix.$name;
-		if ($db) $this->_db = &$db;
+		if ($db) $this->_db = $db;
 		parent::__construct();
 	}
 
 	public function insert(array $data)
 	{
-		var_dump($data);
-
 		list ($fields, $values) = $this->array_to_sql($data);
 		$sql = "INSERT INTO `{$this->_name}` ($fields) VALUES ($values)";
-		var_dump($sql);
 		$this->_db->query($sql);
 	}
 

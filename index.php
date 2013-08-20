@@ -10,13 +10,20 @@
 </style>
 
 <?php
+// ini_set('xdebug.remote_mode', 'req');
+ini_set('ignore_repeated_source', 'On');
+
+// xdebug_start_code_coverage();
 
 require_once('Migrate.class.php');
 
 $Migrate = new Shopp_Migrate;
 
-$table_name = 'shopp_meta';
-$Migrate->convert($table_name);
+$Migrate->convert('shopp_setting');
+// $Migrate->convert('shopp_meta');
+// xdebug_enable();
+xdebug_break();		// split meta data
 
+// var_dump(xdebug_get_code_coverage());
 
 ?>
