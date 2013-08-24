@@ -1,29 +1,28 @@
-<style>
-	.compare {
-		display:-webkit-flex;
-		/*word-wrap: break-word;*/
-	}
-	.compare > * {
-		-webkit-flex:0 1 auto;
-		overflow:scroll;
-	}
-</style>
-
 <?php
-// ini_set('xdebug.remote_mode', 'req');
-ini_set('ignore_repeated_source', 'On');
 
-// xdebug_start_code_coverage();
+$plugin_path = $this->thispluginpath;
 
-require_once('Migrate.class.php');
+require_once @$plugin_path.'Dev.class.php';
 
-$Migrate = new Shopp_Migrate;
+Dev::start(@$plugin_path, true, 'md');
 
-$Migrate->convert('shopp_setting');
-// $Migrate->convert('shopp_meta');
-// xdebug_enable();
-xdebug_break();		// split meta data
+require_once @$plugin_path.'Migrate.class.php';
 
-// var_dump(xdebug_get_code_coverage());
+if (PHP_SAPI != 'cli' && !DEV) {
+	?><link rel="stylesheet" href="<?php echo $this->thispluginurl ?>dev.css"><?php
+}
 
+if (class_exists('Shopp_Migrate_Script')) {
+	$Migrate = new Shopp_Migrate_Script(true, $plugin_path, $this->thispluginurl);
+
+	$Migrate->convert('wp_shopp_setting');
+	$Migrate->convert('wp_shopp_category');
+	$Migrate->convert('wp_shopp_product');
+	$Migrate->convert('wp_shopp_catalog');
+	$Migrate->convert('wp_shopp_meta_images');
+	$Migrate->convert('wp_shopp_asset');
+	$Migrate->convert('wp_shopp_price');
+}
+Dev::end('md');
 ?>
+

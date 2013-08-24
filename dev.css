@@ -1,0 +1,18 @@
+.compare.horizontal {
+	display:-webkit-flex;
+	flex-wrap: wrap;
+}
+.compare.vertical {
+	/*word-wrap: break-word;*/
+}
+.compare > * {
+	overflow:scroll;
+}
+.compare.horizontal > * {
+	-webkit-flex:0 1 33%;
+	overflow:scroll;
+	min-width:300px;
+}
+.compare.vertical > * {
+	border-bottom: 1px solid silver;
+}

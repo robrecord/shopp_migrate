@@ -4,6 +4,24 @@
 		{
 			"follow_symlinks": true,
 			"path": "/Users/robrecord/Sites/migrate_database_119-125"
+		},
+		{
+			"follow_symlinks": true,
+			"path": "/Users/robrecord/Sites/vanilla_migrate/wp-content/plugins/shopp_migrate"
 		}
-	]
+	],
+	"settings":
+	{
+		"xdebug":
+		{
+			"max_depth": 3,
+			"max_children": 64,
+			"browser_no_execute": true,
+			// "launch_browser": true,
+			// "close_on_stop": true,
+			// "url": "http://dev.shiny/migrate_database_119-125/",
+			"url": "http://dev.shiny/vanilla_migrate/wp-admin/admin.php",
+			"ide_key": "XDEBUG_SUBLIME&page=shopp_migrate/shopp_migrate.php",
+		}
+	}
 }
