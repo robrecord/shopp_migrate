@@ -1,5 +1,6 @@
 <?
 require_once @$plugin_path.'Db.php';
+require_once @$plugin_path.'Shopp.Objects.php';
 
 /**
 *
@@ -67,6 +68,7 @@ class Shopp_Migrate_Script
 		$this->connect( 'seita_vanilla_125', 'dbNew' );
 		$this->connect( 'seita_vanilla_migrate', 'dbTemp' );
 		$this->dbTemp->load_sql( $plugin_path . 'seita_vanilla_125.sql' );
+
 	}
 
 	function connect( $db_name, $var_name )
@@ -157,52 +159,18 @@ class Shopp_Migrate_Script
 
 		$this->cache->old_categories = array();
 
-		// add new categories
-		foreach( $old_shopp_categories as $category )
-		{
-			// create wordpress term - also creates term_taxonomy entry
-			$new_term = $this->wordpress_add_category_term( $category );
+		$sorted_categories = $this->organize( $old_shopp_categories );
 
-			var_dump($new_term, $category);
+		$this->category_heirarchy = array();
 
-			// convert category options to metadata in shopp_meta
-			$this->create_shopp_category_meta( $category, $new_term[ 'term_id' ] );
+		$this->process_categories( $sorted_categories );
 
-			// // save so we can reference old ids (etc) later
-			$category->new_term_id = $new_term[ 'term_id' ];
-			$category->new_taxonomy_id = $new_term[ 'term_taxonomy_id' ];
-
-			$this->cache->old_categories[ $category->id ] = $category;
-			if( $category->parent > 0 )
-				$old_child_categories[ $category->parent ] = $category;
-		}
-
-		if( !empty( $old_child_categories ) )
-		{
-			foreach( $old_child_categories as $old_category_parent_id => $old_child_category )
-			{
-				// get parent from cache using array key
-				$new_parent_term_id = $this->cache->old_categories[ $old_category_parent_id ]->new_term_id;
-
-				// get child from previously set array
-				$new_term_id = $old_child_category->new_term_id;
-
-				// add to new array for later
-				$shopp_category_children[ $new_parent_term_id ][] = $new_term_id;
-
-				// update child terms with parent id
-				wp_update_term( $new_term_id, 'shopp_category', array( 'parent' => $new_parent_term_id ) );
-			}
-
-			// update cached category children in wp_options
-			$this->dbTemp->update(
-				'wp_options', array(
-					'option_value' => serialize( $shopp_category_children ) ),
-				'shopp_category_children', 'option_name'
-			);
-		}
-
-
+		// update cached category children in wp_options
+		$this->dbTemp->update(
+			'wp_options', array(
+				'option_value' => serialize( $this->category_heirarchy ) ),
+			'shopp_category_children', 'option_name'
+		);
 
 		// TESTS
 
@@ -214,19 +182,56 @@ class Shopp_Migrate_Script
 
 		$temp_term_taxonomy = $this->dbTemp->read( 'wp_term_taxonomy','shopp_category','taxonomy' )->all();
 		$temp_terms = $this->dbTemp->select( 'wp_terms' )->all();
+
 		// $this->compare( array( $old_shopp_categories, $temp_category_meta, $new_category_meta ) );
 		// $this->compare( array( $old_shopp_categories, get_terms( array( 'shopp_category' ), 'hide_empty=0' ) ) );
-		echo "term_taxonomy (temp, new)";
-		$this->compare( array( $temp_term_taxonomy, $new_term_taxonomy ) );
-		echo "terms (temp, new)";
-		$this->compare( array( $temp_terms, $new_terms ) );
+
+		// echo "term_taxonomy (temp, new)";
+		// $this->compare( array( $temp_term_taxonomy, $new_term_taxonomy ) );
+		// echo "terms (temp, new)";
+		// $this->compare( array( $temp_terms, $new_terms ) );
 	}
 
-	function wordpress_add_category_term( $category, $parent = 0, $args = null )
+	public function process_categories( &$categories )
+	{
+		foreach( $categories as $category )
+		{
+			$this->process_category( $category );
+
+			if( isset( $category->children ) )
+			{
+				foreach( $category->children as &$child_category )
+				{
+					$child_category->parent = $category->new_term_id;
+					$this->category_heirarchy[ $child_category->parent ][] = $category->new_term_id;
+				}
+				$this->process_categories( $category->children );
+			}
+		}
+	}
+
+	public function process_category( &$category, $parent_id = 0 )
+	{
+		// create wordpress term - also creates term_taxonomy entry
+		$new_term = $this->wordpress_add_category_term( $category );
+		// convert category options to metadata in shopp_meta
+		$this->create_shopp_category_meta( $category, $new_term[ 'term_id' ] );
+
+		// // save so we can reference old ids (etc) later
+		$category->new_term_id = $new_term[ 'term_id' ];
+		$category->new_taxonomy_id = $new_term[ 'term_taxonomy_id' ];
+
+		$this->cache->old_categories[ $category->id ] = $category;
+
+		return $category;
+	}
+
+
+	function wordpress_add_category_term( $category, $args = null )
 	{
 		return wp_insert_term( $category->name, 'shopp_category', $args ? : array(
 	        'description'	=> $category->description,
-	        'parent'		=> $parent,
+	        'parent'		=> $category->parent,
 	        'slug'			=> $category->slug
 	    ) );
 	}
@@ -292,6 +297,7 @@ class Shopp_Migrate_Script
 			$product->new_post_id = $post_id;
 			$this->cache->old_products[ $product->id ] = $product;
 
+			// TODO - is this the best way? wont we miss some?
 			wp_delete_object_term_relationships( $post_id, 'shopp_category' );
 
 		}
@@ -299,9 +305,9 @@ class Shopp_Migrate_Script
 		// TESTS
 
 		// // test product posts
-		$temp_shopp_product_posts = $this->dbTemp->read( 'wp_posts', 'shopp_product', 'post_type' )->all();
-		$new_shopp_product_posts = $this->dbNew->read( 'wp_posts', 'shopp_product', 'post_type' )->all();
-		$this->compare( array( $old_shopp_products, $temp_shopp_product_posts, $new_shopp_product_posts ) );
+		// $temp_shopp_product_posts = $this->dbTemp->read( 'wp_posts', 'shopp_product', 'post_type' )->all();
+		// $new_shopp_product_posts = $this->dbNew->read( 'wp_posts', 'shopp_product', 'post_type' )->all();
+		// $this->compare( array( $old_shopp_products, $temp_shopp_product_posts, $new_shopp_product_posts ) );
 
 		// // test product meta
 		// $where_product_meta = array(
@@ -323,10 +329,24 @@ class Shopp_Migrate_Script
 		$new_relationships = array();
 		while( $old_catalog_entry = $old_shopp_catalog->fetch() )
 		{
-			$new_post_id = $this->cache->old_products[ $old_catalog_entry->product ]->new_post_id;
-			$new_relationships[ $new_post_id ][] = $this->cache->old_categories[ $old_catalog_entry->parent ]->new_term_id;
+			if( isset( $this->cache->old_products[ $old_catalog_entry->product ] ) )
+			{
+				$new_post_id = $this->cache->old_products[ $old_catalog_entry->product ]->new_post_id;
+
+				if(
+					isset( $this->cache->old_categories[ $old_catalog_entry->parent ] ) &&
+					!(
+						isset( $new_relationships[ $new_post_id ] ) &&
+						in_array(
+							( $this->cache->old_categories[ $old_catalog_entry->parent ]->new_term_id
+							), $new_relationships[ $new_post_id ]
+						)
+					)
+				) {
+					$new_relationships[ $new_post_id ][] = $this->cache->old_categories[ $old_catalog_entry->parent ]->new_term_id;
+				}
+			}
 		}
-		unset( $original_image, $original_images );
 
 		// now we can create a relaytionship entry matching a new product to a new category
 		foreach( $new_relationships as $new_post_id => $new_term_ids )
@@ -437,29 +457,14 @@ class Shopp_Migrate_Script
 			$this->create_wp_shopp_meta_row( new ShoppProductSpecMeta( $old_spec, array( 'parent' => $new_id ) ) );
 	}
 
-	public function convert_wp_shopp_asset()
+
+	public function convert_wp_shopp_images()
 	{
-		// get original images ( not cached )
-		$where_image_original = array(
-			'name = :n' => array( 'n' => 'original' ),
-			'type = :t' => array( 't' => 'image' )
-		);
-
-		// edit original images
-		$original_images = $this->dbOld->select( 'wp_shopp_meta', '*', $where_image_original );
-		while( $original_image = $original_images->fetch() )
-		{
-			// new ShoppCategoryImageMeta( $original_image );
-			$image_meta_values = unserialize($original_image->value);
-			$image_meta_rows[$original_image->id] = $image_meta_values;
-			// Dev::output_to_json( $image_meta_value, 'original_images');
-		}
-		unset( $original_images, $original_image );
-
 		// get image storage setting for old & temp dbs
 		// values are either FSStorage or DBStorage
+		$this->image_storage_setting = new stdClass();
 
-		$old_image_storage_setting =
+		$this->image_storage_setting->old =
 			array_shift(
 				$this->dbOld->select(
 					'wp_shopp_setting', 'value', array(
@@ -468,7 +473,8 @@ class Shopp_Migrate_Script
 				)->fetch( false )
 			)
 		;
-		$temp_image_storage_setting =
+
+		$this->image_storage_setting->temp =
 			array_shift(
 				$this->dbTemp->select(
 					'wp_shopp_meta', 'value', array(
@@ -480,17 +486,34 @@ class Shopp_Migrate_Script
 			)
 		;
 
-		foreach( $image_meta_rows as $image_meta_id => $image_meta_values )
+		foreach( $this->cache->old_products as $old_product )
 		{
-			// find which asset(s) is/are referenced by each old image meta row
-			$image_assets = $this->dbOld->read( 'wp_shopp_asset', $image_meta_id, 'id' );
+			$where_image_original = array(
+				'name = :n' => array( 'n' => 'original' ),
+				'type = :t' => array( 't' => 'image' ),
+				'parent = :p' => array( 'p' => $old_product->id )
+			);
 
-			// with each image
-			while( $image_asset = $image_assets->fetch() )
+			$images_meta = $this->dbOld->select( 'wp_shopp_meta','*', $where_image_original );
+			while( $image_meta = $images_meta->fetch() )
 			{
-				if( isset( $this->cache->old_original_images[$image_meta_id]->new_image_id ) )
+				// set parent id of image to new post id of its product
+
+				$image_meta_values = unserialize( $image_meta->value );
+
+				if ( $image_meta_values->storage === "DBStorage" )
 				{
-					if ($temp_image_storage_setting === "FSStorage") // using filesystem storage
+					$image_asset = $this->dbOld->select( 'wp_shopp_asset', 'data', array( 'id = :i' => array( 'i' => $image_meta_values->uri ) ) )->fetch();
+
+				} else die( "Migration of images from FSStorage not yet supported. Meta ID: " . $image_meta->id );
+
+				if( $image_asset && ( strlen( $image_asset->data ) > 0 ) )
+				{
+					$image_meta->parent = $old_product->new_post_id;
+
+					$image_meta_values->size = (int) strlen( $image_asset->data );
+
+					if ( $this->image_storage_setting->temp === "FSStorage" ) // using filesystem storage
 					{
 						$image_meta_values->uri = $image_meta_values->filename;
 						$this->save_image_file( $image_asset->data, $image_meta_values->filename );
@@ -498,65 +521,20 @@ class Shopp_Migrate_Script
 					else // using database image storage
 					{
 						// unset asset id
-						unset($image_asset->id);
 						// put asset into temp db; get back new asset id
-						$asset_id = $this->dbTemp->create( 'wp_shopp_asset', ((array) $image_asset))->id();
+						$asset_id = $this->dbTemp->create( 'wp_shopp_asset', (array) $image_asset )->id();
 						$image_meta_values->uri = $asset_id;
 					}
 
-					$image_meta_values->storage = $temp_image_storage_setting;
-
-					$new_image_meta_id =
-						$this->cache->old_original_images[$image_meta_id]->new_image_id;
-
-					// update image meta row to reference correct asset by id
-					$test = $this->dbTemp->update(
-						'wp_shopp_meta', array(
-							'value' => serialize( $image_meta_values )
-						), $new_image_meta_id, 'id'
-					);
-				}
-
-
-				// (asset id is saved as 'uri', in serialized data from 'value' field)
-			}
-			unset( $image_asset, $image_assets );
-		}
-	}
-
-	public function convert_wp_shopp_meta_images()
-	{
-		if (empty($this->cache->old_original_images)) {
-			// get original images ( not cached )
-			$where_image_original = array(
-				'name = :n' => array( 'n' => 'original' ),
-				'type = :t' => array( 't' => 'image' )
-			);
-
-			// edit original images
-			$original_images = $this->dbOld->select( 'wp_shopp_meta','*', $where_image_original );
-			while( $original_image = $original_images->fetch() )
-			{
-				$new_original_image = $original_image;
-
-				// set parent id of image to new post id of its product
-				if( isset( $this->cache->old_products[ $original_image->parent ]->new_post_id ) )
-				{
-					$new_original_image->parent = $this->cache->old_products[ $original_image->parent ]->new_post_id;
-					// each image will get a new id
-					$old_image_id = $original_image->id;
-					unset( $new_original_image->id );
+					$image_meta_values->storage = $this->image_storage_setting->temp;
+					foreach( $image_meta_values as &$value) if ($value==="") $value = null;
+					$image_meta->value = serialize( $image_meta_values );
 
 					// save original images in temp db
-					$new_image_id = $this->dbTemp->create( 'wp_shopp_meta', (array) $new_original_image )->id();
-
-					// cache the old data
-					$original_image->new_parent_id = $new_original_image->parent;
-					$original_image->new_image_id = $new_image_id;
-					$this->cache->old_original_images[$old_image_id] = $original_image;
+					unset( $image_meta->id );
+					$image_meta->id = $this->dbTemp->create( 'wp_shopp_meta', (array) $image_meta )->id();
 				}
 			}
-			unset( $original_image, $original_images);
 		}
 	}
 
@@ -568,6 +546,7 @@ class Shopp_Migrate_Script
 		{
 
 			$price_row = $this->convert_wp_shopp_price_row( $old_price_row );
+
 			$price_id = $this->dbTemp->create( 'wp_shopp_price', (array) $price_row )->id();
 			if( $price_row->type != 'N/A' ) {
 				$this->create_new_shopp_price_meta( $old_price_row, $price_id );
@@ -578,7 +557,11 @@ class Shopp_Migrate_Script
 	public function convert_wp_shopp_price_row( $row )
 	{
 		$row = new ShoppPriceRow( $row, array(
-			'product' 	=> $this->cache->old_products[ $row->product ]->new_post_id
+			'product' 	=> $this->cache->old_products[ $row->product ]->new_post_id,
+			'shipping'	=> 2, // off
+			'inventory' => 2, // on
+			'stock'		=> 1 // 1 in stock
+			// 'stocked'	=> 1  // unsure what this is used for
 		));
 
 		return $row;
@@ -710,197 +693,140 @@ class Shopp_Migrate_Script
 				$indexed++;
 			}
 		}
-
-	}
-}
-
-class ShoppData
-{
-	public function __construct( $object = null, $properties = array() )
-	{
-		if( is_object($object) ) $this->_copy( $object );
-		foreach ( $properties as $key => $value )
-			$this->$key = $value;
 	}
 
-	public function set($key, $value=null)
+	public function organize($original_data_set, $root_id = 0)
 	{
-		if( is_array($key) ) foreach( $key as $k => $v) $this->set($k, $v);
-		else $this->$key = $value;
-		return $this;
-	}
-
-	public function _copy( &$object )
-	{
-		foreach ( array_keys( (array) $this ) as $key )
-			if( isset( $object->$key ) && !is_null( $object->$key ) )
-				$this->$key = $object->$key;
-		return $this;
-	}
-
-	function createInstance($className, array $arguments = array())
-	{
-	    if(class_exists($className)) {
-	        return call_user_func_array(array(
-	            new ReflectionClass($className), 'newInstance'),
-	            $arguments);
+	    foreach ($original_data_set as $row) {
+	        $id = $row->id;
+	        $data_set[$id] = $row;
 	    }
-	    return false;
+
+	    foreach ($data_set as $id => &$row) {
+	        $parent_id = isset($row->parent) ? $row->parent : $root_id;
+	        if ($parent_id != $root_id) {
+	            $data_set[$parent_id]->children[$id] = &$row;
+	        }
+	    }
+
+	    foreach ($data_set as $id => &$row) {
+	        $parent_id = isset($row->parent) ? $row->parent : $root_id;
+	        if ($parent_id == $root_id) {
+	            $data_organized[$id] = $row;
+	        }
+	    }
+
+	    return $data_organized;
 	}
 }
 
-class DatedShoppData extends ShoppData
+/**
+*
+*/
+class Data_Set
 {
-	public $created;
-	public $modified;
+    private $_primary_key = 'id';
+    private $_root_id = 0;
+    public $_data;
+    private $_row;
 
-	function __construct() {
-		call_user_func_array(array('parent', '__construct'), func_get_args());
-		foreach ( array( 'created', 'modified' ) as $var)
-			if( empty($this->$var) ) $this->$var = date('Y-m-d H:i:s');
-	}
-}
+    function __construct()
+    {
+        $this->_data = array();
+    }
 
-class ShoppMeta extends DatedShoppData
-{
-	public $parent = 0;
-	public $context = 'product';
-	public $type = 'meta';
-	public $name;
-	public $value;
-	public $numeral = 0.0;
-	public $sortorder = 0;
+    public function extract($key, $default = false)
+    {
+        if (!array_key_exists($key, $this->_row))
+            return $default;
+        return $this->_row[$key];
+    }
 
-	public function parent($parent_id)
-	{
-		$this->parent = (int) $parent_id;
-	}
-}
+    public function extract_unset($key, $default = false)
+    {
+        if (($value = $this->extract($key, $default)) !== false)
+            unset($this->_row[$key]);
+        return $value;
+    }
 
-class ShoppSettingMeta extends ShoppMeta
-{
-	public $context = 'shopp';
-	public $type = 'setting';
-}
+    public function add_row($row)
+    {
+        $this->_data[] = $row;
+        // unset($this->row);
+    }
+
+    public function organize($parent_key, $root_id = null)
+    {
+        if (!is_null($root_id)) $this->_root_id = $root_id;
+
+        $data = $this->_data;
+
+        foreach ($data as &$this->_row) {
+            $id = $this->extract_unset($this->primary_key);
+            $data[$id] = $this->_row;
+        }
+
+        foreach ($data as $id => &$this->_row) {
+            $parent_id = $this->extract($parent_key, $this->_root_id);
+            if ($parent_id != $this->_root_id) {
+                unset($this->_row[$parent_key]);
+                $data[$parent_id]['children'][$id] = &$this->_row;
+            }
+        }
+        foreach ($data as $id => &$this->_row) {
+            $parent_id = $this->extract($parent_key, $this->_root_id);
+            if ($parent_id == $this->_root_id) {
+                unset($this->_row[$parent_key]);
+                $this->data_organized[$id] = $this->_row;
+            }
+        }
+        unset($this->_row);
+        return $this->_data_organized;
+    }
 
 
-class ShoppProductImageMeta extends ShoppMeta
-{
-	public $type = 'image';
-	public $name = 'original';
-}
+    protected function ksortRecursive(array $data = array())
+    {
+        if (empty($data)) $data = $this->_data;
+        foreach ($data as $key => $nestedArray) {
+            if (is_array($nestedArray) && !empty($nestedArray)) {
+                $this->_data_organized[$key] = $this->ksortRecursive($nestedArray);
+            }
+        }
+        return ksort($this->_data_organized);
+    }
 
-class ShoppImageSettingMeta extends ShoppMeta
-{
-	public $context = 'setting';
-	public $type = 'image_setting';
-}
+    public function order_by($order_by, array $data = array())
+    {
+        if (empty($data)) $data = $this->_data;
 
-class ShoppSpecMeta extends ShoppMeta
-{
-	public $type = 'spec';
-}
+        $sortArray = array();
+        foreach($data as $values){
+            foreach($values as $key=>$value){
+                if(!isset($sortArray[$key]))
+                    $sortArray[$key] = array();
+                $sortArray[$key][] = $value;
+            }
+        }
+        array_multisort($sortArray[$order_by],SORT_ASC,$data);
 
-class ShoppProductMeta extends ShoppMeta
-{
-	// public $context = 'product';
-}
+        return $this->_data_organized = $data;
+    }
+    public function reorder($keys, array $data = array())
+    {
+        if (empty($data)) $data = $this->_data;
+        $reordered = array();
+        foreach($keys as $key)
+            $reordered[$key] = $data[$key];
+        return $this->_data_organized = $reordered;
+    }
 
-class ShoppCategoryMeta extends ShoppMeta
-{
-	public $context = 'category';
-}
-
-class ShoppPriceMeta extends ShoppMeta
-{
-	public $context = 'price';
-}
-
-class ShoppProductSpecMeta extends ShoppSpecMeta
-{
-	// public $context = 'product';
-}
-
-class ShoppCategorySpecMeta extends ShoppSpecMeta
-{
-	public $context = 'category';
-}
-
-class ShoppCategorySpecMetaRows extends ShoppData
-{
-	public $spectemplate;
-	public $facetedmenus;
-	public $variations;
-	public $pricerange;
-	public $priceranges;
-	public $specs;
-	public $options;
-	public $prices;
-	public $priority = 0;
-
-	function __construct() {
-		call_user_func_array(array('parent', '__construct'), func_get_args());
-		foreach ( array( 'options', 'prices' ) as $var)
-			if( empty($this->$var) ) $this->$var = serialize(array());
-	}
-}
-
-class ShoppPriceRow extends DatedShoppData
-{
-	public $product		= 0;
-	public $context		= 'price';
-	public $type		= 0;
-	public $optionkey	= 0;
-	public $label		= '';
-	public $sku			= '';
-	public $price		= 0.0;
-	public $saleprice	= 0.0;
-	public $promoprice	= 0.0;
-	public $cost		= 0.0;
-	public $shipfee		= 0.0;
-	public $stock		= 0;
-	public $stocked		= 0;
-	public $inventory;
-	public $sale;
-	public $shipping;
-	public $tax;
-	public $discounts	= '';
-	public $sortorder	= 0;
-
-	public function _copy( &$object )
-	{
-		parent::_copy( $object );
-		$this->stocked = $this->stock;
-		return $this;
-	}
-}
-
-class ShoppSummaryRow extends ShoppData
-{
-	public $product = 0;
-	public $sold = 0;
-	public $grossed = 0.0;
-	public $maxprice = 0.0;
-	public $minprice = 0.0;
-	public $ranges;
-	public $taxed = null;
-	public $lowstock;
-	public $stock;
-	public $inventory = 0;
-	public $featured;
-	public $variants;
-	public $addons;
-	public $sale;
-	public $freeship;
-	public $modified;
-
-	function __construct() {
-		call_user_func_array(array('parent', '__construct'), func_get_args());
-		if( empty($this->modified) ) $this->modified = date('Y-m-d H:i:s');
-	}
+    public function objectify($key = 'name')
+    {
+        $data = $this->order_by($key);
+        foreach ($data as $row) {
+            $this->{$row['type']}[$row['id']] = $row;
+        }
+    }
 
 }
-
-
-?>
-

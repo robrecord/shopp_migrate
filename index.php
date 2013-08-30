@@ -19,11 +19,10 @@ if (class_exists('Shopp_Migrate_Script')) {
 	$Migrate->convert('wp_shopp_category');
 	$Migrate->convert('wp_shopp_product');
 	$Migrate->convert('wp_shopp_catalog');
-	$Migrate->convert('wp_shopp_meta_images');
-	$Migrate->convert('wp_shopp_asset');
+	$Migrate->convert('wp_shopp_images');
 	$Migrate->convert('wp_shopp_price');
 	$Migrate->convert('wp_shopp_summary');
-	$Migrate->reindex_products();
+	// $Migrate->reindex_products();
 }
 
 Dev::end('md');
