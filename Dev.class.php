@@ -37,9 +37,12 @@ class Dev
 	public static function log_errors($error_log_file = null)
 	{
 		if ($error_log_file) self::$error_log_file = $error_log_file;
+		if( file_exists(self::$error_log_file))
+		{
 		if (( $log_handle = @fopen(self::$error_log_file, "r+") ) !== false) {
 		    ftruncate($log_handle, 0);
 		    fclose($log_handle);
+		}
 		}
 		ini_set('error_log', self::$error_log_file);
 		ini_set('log_errors', 1);
