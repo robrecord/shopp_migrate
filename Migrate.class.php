@@ -358,6 +358,63 @@ class Shopp_Migrate_Script
 		// $this->compare( array( $old_shopp_products, $temp_category_meta, $new_category_meta ) );
 	}
 
+	public function convert_shopp_order_only()
+	{
+		// var_dump( $this->cache->old_products );
+
+		$order_only_posts = $this->dbOld->select( 'wp_shopp_order_only_items' );
+
+		while( $order_only_post = $order_only_posts->fetch() )
+		{
+			// $old_product_id = $this->dbOld->read( 'wp_shopp_product', $order_only_post->id, 'id' )->column( 'id' );
+			if( isset( $this->cache->old_products[ $order_only_post->id ] ) )
+			{
+				$order_only_post->id = $this->cache->old_products[ $order_only_post->id ]->new_post_id;
+				$this->dbTemp->create( 'wp_shopp_order_only_items', (array) $order_only_post );
+			}
+		}
+
+		$order_only_cats = $this->dbOld->select( 'wp_shopp_order_only_cats' );
+
+		while( $order_only_cat = $order_only_cats->fetch() )
+		{
+			$this->dbTemp->create( 'wp_shopp_order_only_cats', (array) $order_only_cat );
+		}
+
+	}
+
+	public function convert_importer_edge_cat_map()
+	{
+		$edge_cat_map = $this->dbOld->select( 'wp_shopp_edge_category_map' );
+
+		while( $edge_cat_map_row = $edge_cat_map->fetch() )
+		{
+			if( $old_category = $this->cache->old_categories[ (int) $edge_cat_map_row->category ] )
+			{
+				$edge_cat_map_row->category = $old_category->new_term_id;
+				$this->dbTemp->create( 'wp_shopp_edge_category_map', (array) $edge_cat_map_row );
+			}
+		}
+		$edge_catalog = $this->dbOld->select( 'wp_shopp_edge_catalog' );
+
+		while( $edge_catalog_row = $edge_catalog->fetch() )
+		{
+			if( $old_product = $this->cache->old_products[ (int) $edge_catalog_row->product ] )
+			{
+				$edge_catalog_row->product = $old_product->new_post_id;
+				$this->dbTemp->create( 'wp_shopp_edge_catalog', (array) $edge_catalog_row );
+			}
+		}
+
+		$edge_cats = $this->dbOld->select( 'wp_shopp_edge_category' );
+
+		while( $edge_cat = $edge_cats->fetch() )
+		{
+			$this->dbTemp->create( 'wp_shopp_edge_category', (array) $edge_cat );
+		}
+
+	}
+
 	public function convert_wp_shopp_catalog()
 	{
 		// add category

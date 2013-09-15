@@ -311,3 +311,71 @@ CREATE TABLE `wp_shopp_summary` (
   KEY `lowprice` (`minprice`,`product`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+DROP TABLE IF EXISTS `wp_shopp_order_only_cats`;
+
+CREATE TABLE `wp_shopp_order_only_cats` (
+  `cat_id` int(11) NOT NULL,
+  UNIQUE KEY `cat_id` (`cat_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+DROP TABLE IF EXISTS `wp_shopp_order_only_items`;
+
+CREATE TABLE `wp_shopp_order_only_items` (
+  `id` bigint(20) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `sku` varchar(100) NOT NULL,
+  KEY `sku` (`sku`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+DROP TABLE IF EXISTS `wp_shopp_edge_category_map`;
+
+CREATE TABLE `wp_shopp_edge_category_map` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `category` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `edge_category` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `created` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `modified` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  KEY `product` (`category`),
+  KEY `assignment` (`edge_category`)
+) ENGINE=MyISAM AUTO_INCREMENT=180 DEFAULT CHARSET=latin1;
+
+DROP TABLE IF EXISTS `wp_shopp_edge_category`;
+
+CREATE TABLE `wp_shopp_edge_category` (
+  `id` bigint(20) unsigned NOT NULL,
+  `parent` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `name` varchar(255) NOT NULL DEFAULT '',
+  `slug` varchar(64) NOT NULL DEFAULT '',
+  `uri` varchar(255) NOT NULL DEFAULT '',
+  `description` text NOT NULL,
+  `spectemplate` enum('off','on') NOT NULL,
+  `facetedmenus` enum('off','on') NOT NULL,
+  `variations` enum('off','on') NOT NULL,
+  `pricerange` enum('disabled','auto','custom') NOT NULL,
+  `priceranges` text NOT NULL,
+  `specs` text NOT NULL,
+  `options` text NOT NULL,
+  `prices` text NOT NULL,
+  `priority` int(10) NOT NULL DEFAULT '0',
+  `created` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `modified` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  KEY `parent` (`parent`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+DROP TABLE IF EXISTS `wp_shopp_edge_catalog`;
+
+CREATE TABLE `wp_shopp_edge_catalog` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `product` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `parent` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `type` enum('category','tag') NOT NULL,
+  `priority` int(10) NOT NULL DEFAULT '0',
+  `created` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `modified` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  KEY `product` (`product`),
+  KEY `assignment` (`parent`,`type`)
+) ENGINE=MyISAM AUTO_INCREMENT=9287 DEFAULT CHARSET=latin1;
+
