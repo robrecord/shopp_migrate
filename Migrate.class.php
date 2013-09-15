@@ -1,7 +1,7 @@
 <?
 require_once @$plugin_path.'Db.php';
 if (!class_exists('ShoppData'))
-require_once @$plugin_path.'Shopp.Objects.php';
+	require_once @$plugin_path.'Shopp.Objects.php';
 
 /**
 *
@@ -10,28 +10,28 @@ class myDb extends External_Db
 {
 	public function load_sql( $file, $delimiter = ';' )
 	{
-	    set_time_limit(0);
-	    if( is_file( $file ) === true )
-	    {
-	        $file = fopen( $file, 'r' );
-	        if( is_resource( $file ) === true )
-	        {
-	            $query = array();
-	            while( feof( $file ) === false )
-	            {
-	                $query[] = fgets( $file );
-	                if( preg_match( '~' . preg_quote( $delimiter, '~' ) . '\s*$~iS', end( $query ) ) === 1 )
-	                {
-	                    $query = trim( implode( '', $query ) );
-	                    $result = $this->raw( $query );
-	                }
-	                if( is_string( $query ) === true )
-		                $query = array();
-	            }
-	            return fclose( $file );
-	        }
-	    }
-	    return false;
+		set_time_limit(0);
+		if( is_file( $file ) === true )
+		{
+			$file = fopen( $file, 'r' );
+			if( is_resource( $file ) === true )
+			{
+				$query = array();
+				while( feof( $file ) === false )
+				{
+					$query[] = fgets( $file );
+					if( preg_match( '~' . preg_quote( $delimiter, '~' ) . '\s*$~iS', end( $query ) ) === 1 )
+					{
+						$query = trim( implode( '', $query ) );
+						$result = $this->raw( $query );
+					}
+					if( is_string( $query ) === true )
+						$query = array();
+				}
+				return fclose( $file );
+			}
+		}
+		return false;
 	}
 }
 /**
@@ -269,10 +269,10 @@ class Shopp_Migrate_Script
 	function wordpress_add_category_term( $category, $args = null )
 	{
 		return wp_insert_term( $category->name, 'shopp_category', $args ? : array(
-	        'description'	=> $category->description,
-	        'parent'		=> $category->parent,
-	        'slug'			=> $category->slug
-	    ) );
+			'description'	=> $category->description,
+			'parent'		=> $category->parent,
+			'slug'			=> $category->slug
+		) );
 	}
 
 	function create_shopp_category_meta( $category, $term_id )
@@ -331,7 +331,7 @@ class Shopp_Migrate_Script
 			// convert category options to metadata in shopp_meta
 			$this->create_new_shopp_product_meta( $product, $post_id );
 
-			$this->create_product_spec_meta($product->id, $post_id);
+			$this->create_product_spec_meta( $product->id, $post_id );
 
 			$product->new_post_id = $post_id;
 			$this->cache->old_products[ $product->id ] = $product;
@@ -478,17 +478,17 @@ class Shopp_Migrate_Script
 	function wordpress_add_product_post( $title, $content, $summary = null, $date_created = null, $date_modified = null, $publish = 'publish' )
 	{
 		return wp_insert_post( array(
-	        'post_title'        => $title,
-	        'post_content'      => $content,
-	        'post_excerpt'		=> $summary,
-	        'post_status'       => $publish,
-	        'post_author'       => 1,
-	        'post_type'			=> 'shopp_product',
-	        'comment_status'	=> 'closed',
-	        'ping_status'		=> 'closed',
-	        'post_date'			=> $date_created,
-	        'post_modified'		=> $date_modified
-	    ) );
+			'post_title'        => $title,
+			'post_content'      => $content,
+			'post_excerpt'		=> $summary,
+			'post_status'       => $publish,
+			'post_author'       => 1,
+			'post_type'			=> 'shopp_product',
+			'comment_status'	=> 'closed',
+			'ping_status'		=> 'closed',
+			'post_date'			=> $date_created,
+			'post_modified'		=> $date_modified
+		) );
 	}
 
 	function create_new_shopp_product_meta( $product, $post_id )
@@ -731,7 +731,7 @@ class Shopp_Migrate_Script
 		$sorted = array();
 		foreach( $key_order as $key )
 		{
-		    $sorted[ $key ] = $row[ $key ];
+			$sorted[ $key ] = $row[ $key ];
 		}
 		$row = $sorted;
 		return $row;
@@ -793,26 +793,26 @@ class Shopp_Migrate_Script
 
 	public function organize($original_data_set, $root_id = 0)
 	{
-	    foreach ($original_data_set as $row) {
-	        $id = $row->id;
-	        $data_set[$id] = $row;
-	    }
+		foreach ($original_data_set as $row) {
+			$id = $row->id;
+			$data_set[$id] = $row;
+		}
 
-	    foreach ($data_set as $id => &$row) {
-	        $parent_id = isset($row->parent) ? $row->parent : $root_id;
-	        if ($parent_id != $root_id) {
-	            $data_set[$parent_id]->children[$id] = &$row;
-	        }
-	    }
+		foreach ($data_set as $id => &$row) {
+			$parent_id = isset($row->parent) ? $row->parent : $root_id;
+			if ($parent_id != $root_id) {
+				$data_set[$parent_id]->children[$id] = &$row;
+			}
+		}
 
-	    foreach ($data_set as $id => &$row) {
-	        $parent_id = isset($row->parent) ? $row->parent : $root_id;
-	        if ($parent_id == $root_id) {
-	            $data_organized[$id] = $row;
-	        }
-	    }
+		foreach ($data_set as $id => &$row) {
+			$parent_id = isset($row->parent) ? $row->parent : $root_id;
+			if ($parent_id == $root_id) {
+				$data_organized[$id] = $row;
+			}
+		}
 
-	    return $data_organized;
+		return $data_organized;
 	}
 }
 
@@ -821,108 +821,108 @@ class Shopp_Migrate_Script
 */
 class Data_Set
 {
-    private $_primary_key = 'id';
-    private $_root_id = 0;
-    public $_data;
-    private $_row;
+	private $_primary_key = 'id';
+	private $_root_id = 0;
+	public $_data;
+	private $_row;
 
-    function __construct()
-    {
-        $this->_data = array();
-    }
+	function __construct()
+	{
+		$this->_data = array();
+	}
 
-    public function extract($key, $default = false)
-    {
-        if (!array_key_exists($key, $this->_row))
-            return $default;
-        return $this->_row[$key];
-    }
+	public function extract($key, $default = false)
+	{
+		if (!array_key_exists($key, $this->_row))
+			return $default;
+		return $this->_row[$key];
+	}
 
-    public function extract_unset($key, $default = false)
-    {
-        if (($value = $this->extract($key, $default)) !== false)
-            unset($this->_row[$key]);
-        return $value;
-    }
+	public function extract_unset($key, $default = false)
+	{
+		if (($value = $this->extract($key, $default)) !== false)
+			unset($this->_row[$key]);
+		return $value;
+	}
 
-    public function add_row($row)
-    {
-        $this->_data[] = $row;
-        // unset($this->row);
-    }
+	public function add_row($row)
+	{
+		$this->_data[] = $row;
+		// unset($this->row);
+	}
 
-    public function organize($parent_key, $root_id = null)
-    {
-        if (!is_null($root_id)) $this->_root_id = $root_id;
+	public function organize($parent_key, $root_id = null)
+	{
+		if (!is_null($root_id)) $this->_root_id = $root_id;
 
-        $data = $this->_data;
+		$data = $this->_data;
 
-        foreach ($data as &$this->_row) {
-            $id = $this->extract_unset($this->primary_key);
-            $data[$id] = $this->_row;
-        }
+		foreach ($data as &$this->_row) {
+			$id = $this->extract_unset($this->primary_key);
+			$data[$id] = $this->_row;
+		}
 
-        foreach ($data as $id => &$this->_row) {
-            $parent_id = $this->extract($parent_key, $this->_root_id);
-            if ($parent_id != $this->_root_id) {
-                unset($this->_row[$parent_key]);
-                $data[$parent_id]['children'][$id] = &$this->_row;
-            }
-        }
-        foreach ($data as $id => &$this->_row) {
-            $parent_id = $this->extract($parent_key, $this->_root_id);
-            if ($parent_id == $this->_root_id) {
-                unset($this->_row[$parent_key]);
-                $this->data_organized[$id] = $this->_row;
-            }
-        }
-        unset($this->_row);
-        return $this->_data_organized;
-    }
+		foreach ($data as $id => &$this->_row) {
+			$parent_id = $this->extract($parent_key, $this->_root_id);
+			if ($parent_id != $this->_root_id) {
+				unset($this->_row[$parent_key]);
+				$data[$parent_id]['children'][$id] = &$this->_row;
+			}
+		}
+		foreach ($data as $id => &$this->_row) {
+			$parent_id = $this->extract($parent_key, $this->_root_id);
+			if ($parent_id == $this->_root_id) {
+				unset($this->_row[$parent_key]);
+				$this->data_organized[$id] = $this->_row;
+			}
+		}
+		unset($this->_row);
+		return $this->_data_organized;
+	}
 
 
-    protected function ksortRecursive(array $data = array())
-    {
-        if (empty($data)) $data = $this->_data;
-        foreach ($data as $key => $nestedArray) {
-            if (is_array($nestedArray) && !empty($nestedArray)) {
-                $this->_data_organized[$key] = $this->ksortRecursive($nestedArray);
-            }
-        }
-        return ksort($this->_data_organized);
-    }
+	protected function ksortRecursive(array $data = array())
+	{
+		if (empty($data)) $data = $this->_data;
+		foreach ($data as $key => $nestedArray) {
+			if (is_array($nestedArray) && !empty($nestedArray)) {
+				$this->_data_organized[$key] = $this->ksortRecursive($nestedArray);
+			}
+		}
+		return ksort($this->_data_organized);
+	}
 
-    public function order_by($order_by, array $data = array())
-    {
-        if (empty($data)) $data = $this->_data;
+	public function order_by($order_by, array $data = array())
+	{
+		if (empty($data)) $data = $this->_data;
 
-        $sortArray = array();
-        foreach($data as $values){
-            foreach($values as $key=>$value){
-                if(!isset($sortArray[$key]))
-                    $sortArray[$key] = array();
-                $sortArray[$key][] = $value;
-            }
-        }
-        array_multisort($sortArray[$order_by],SORT_ASC,$data);
+		$sortArray = array();
+		foreach($data as $values){
+			foreach($values as $key=>$value){
+				if(!isset($sortArray[$key]))
+					$sortArray[$key] = array();
+				$sortArray[$key][] = $value;
+			}
+		}
+		array_multisort($sortArray[$order_by],SORT_ASC,$data);
 
-        return $this->_data_organized = $data;
-    }
-    public function reorder($keys, array $data = array())
-    {
-        if (empty($data)) $data = $this->_data;
-        $reordered = array();
-        foreach($keys as $key)
-            $reordered[$key] = $data[$key];
-        return $this->_data_organized = $reordered;
-    }
+		return $this->_data_organized = $data;
+	}
+	public function reorder($keys, array $data = array())
+	{
+		if (empty($data)) $data = $this->_data;
+		$reordered = array();
+		foreach($keys as $key)
+			$reordered[$key] = $data[$key];
+		return $this->_data_organized = $reordered;
+	}
 
-    public function objectify($key = 'name')
-    {
-        $data = $this->order_by($key);
-        foreach ($data as $row) {
-            $this->{$row['type']}[$row['id']] = $row;
-        }
-    }
+	public function objectify($key = 'name')
+	{
+		$data = $this->order_by($key);
+		foreach ($data as $row) {
+			$this->{$row['type']}[$row['id']] = $row;
+		}
+	}
 
 }
