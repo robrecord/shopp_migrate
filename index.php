@@ -4,7 +4,7 @@ $plugin_path = $this->thispluginpath;
 
 require_once @$plugin_path.'Dev.class.php';
 
-Dev::start(@$plugin_path, true, 'md');
+Dev::start(@$plugin_path, false, 'md');
 
 require_once @$plugin_path.'Migrate.class.php';
 
