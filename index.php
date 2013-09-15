@@ -1,6 +1,6 @@
 <?php
 
-// $plugin_path = $this->thispluginpath;
+$plugin_path = $this->thispluginpath;
 
 require_once @$plugin_path.'Dev.class.php';
 
