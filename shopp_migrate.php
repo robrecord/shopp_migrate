@@ -70,7 +70,7 @@ if (!class_exists('shopp_migrate')) {
 		/**
 		* PHP 4 Compatible Constructor
 		*/
-		function shopp_migrate(){$this->__construct();}
+		// function shopp_migrate(){$this->__construct();}
 
 		/**
 		* PHP 5 Constructor
