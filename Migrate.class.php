@@ -1,5 +1,6 @@
 <?
 require_once @$plugin_path.'Db.php';
+if (!class_exists('ShoppData'))
 require_once @$plugin_path.'Shopp.Objects.php';
 
 /**
