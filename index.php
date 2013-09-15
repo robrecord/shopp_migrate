@@ -20,6 +20,7 @@ if (class_exists('Shopp_Migrate_Script')) {
 	$Migrate->copy_wp_shopp_setting();
 	$Migrate->convert('wp_shopp_category');
 	$Migrate->convert('wp_shopp_product');
+	$Migrate->convert('shopp_order_only');
 	$Migrate->convert('wp_shopp_catalog');
 	$Migrate->convert('wp_shopp_images');
 	$Migrate->convert('wp_shopp_price');
