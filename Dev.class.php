@@ -12,12 +12,13 @@ class Dev
 
 	public static function start($plugin_path, $record_output = false, $flush_ext = null)
 	{
+
 		self::$record_output = $record_output;
 		self::$plugin_path = $plugin_path;
 		self::$flush_ext = $flush_ext;
 		self::$error_log_file = $plugin_path.'error.log';
-		define('DEV', true);
-		Dev::handle_errors();
+		define('DEV', false);
+		// Dev::handle_errors();
 		Dev::log_errors();
 		if ($record_output) {
 			ob_start();
@@ -39,10 +40,10 @@ class Dev
 		if ($error_log_file) self::$error_log_file = $error_log_file;
 		if( file_exists(self::$error_log_file))
 		{
-		if (( $log_handle = @fopen(self::$error_log_file, "r+") ) !== false) {
-		    ftruncate($log_handle, 0);
-		    fclose($log_handle);
-		}
+			if (( $log_handle = @fopen(self::$error_log_file, "r+") ) !== false) {
+			    ftruncate($log_handle, 0);
+			    fclose($log_handle);
+			}
 		}
 		ini_set('error_log', self::$error_log_file);
 		ini_set('log_errors', 1);
