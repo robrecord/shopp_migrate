@@ -15,7 +15,9 @@ if (PHP_SAPI != 'cli' && !DEV) {
 if (class_exists('Shopp_Migrate_Script')) {
 	$Migrate = new Shopp_Migrate_Script(true, $plugin_path, $this->thispluginurl);
 
-	$Migrate->convert('wp_shopp_setting');
+	$Migrate->save_wp_shopp_setting();
+	$Migrate->reset_tables();
+	$Migrate->copy_wp_shopp_setting();
 	$Migrate->convert('wp_shopp_category');
 	$Migrate->convert('wp_shopp_product');
 	$Migrate->convert('wp_shopp_catalog');

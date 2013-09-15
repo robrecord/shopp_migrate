@@ -68,8 +68,6 @@ class Shopp_Migrate_Script
 		$this->connect( 'seita_hostgator_clone', 'dbOld' );
 		$this->connect( 'seita_vanilla_125', 'dbNew' );
 		$this->connect( 'seita_vanilla_migrate', 'dbTemp' );
-		$this->dbTemp->load_sql( $plugin_path . 'seita_vanilla_125.sql' );
-
 	}
 
 	function connect( $db_name, $var_name )
@@ -85,6 +83,11 @@ class Shopp_Migrate_Script
 		// require_once( "../{$wp_install}/wp-load.php" );
 		require_once( "../../../wp-load.php" );
 		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+	}
+
+	function reset_tables()
+	{
+		$result = $this->dbTemp->load_sql( $this->plugin_path . 'seita_vanilla_125.sql' );
 	}
 
 	public function convert( $table_name, $compare = false )
@@ -115,7 +118,7 @@ class Shopp_Migrate_Script
 		}
 	}
 
-	public function convert_wp_shopp_setting()
+	public function save_wp_shopp_setting()
 	{
 		// select shopp settings
 		$where_shopp_settings = array(	'context = :c'	=> array( 'c' => 'shopp' ),
@@ -126,14 +129,49 @@ class Shopp_Migrate_Script
 		// transfer settings
 		foreach( array( $where_shopp_settings, $where_image_settings ) as $condition )
 		{
-			$select = $this->dbNew->select( 'wp_shopp_meta', '*', $condition );
+			$select = $this->dbTemp->select( 'wp_shopp_meta', '*', $condition );
 			while( $result = $select->fetch() ) { // false = fetch array
-				$new_setting = new ShoppSettingMeta( $result );
-				$this->dbTemp->create( 'wp_shopp_meta', (array) $new_setting );
+				// if( !strpos('catskin_importer_', $result->name ) )
+				// {
+					$this->saved_settings[] = new ShoppSettingMeta( $result );
+				// }
+
 			}
 			unset( $result, $select );
 		}
 	}
+	public function copy_wp_shopp_setting()
+	{
+		// transfer settings
+		foreach( $this->saved_settings as $new_setting )
+		{
+			$this->dbTemp->create( 'wp_shopp_meta', (array) $new_setting );
+		}
+	}
+
+	// public function convert_wp_shopp_setting()
+	// {
+	// 	// select shopp settings
+	// 	$where_shopp_settings = array(	'context = :c'	=> array( 'c' => 'shopp' ),
+	// 									'type = :t'		=> array( 't' => 'setting' ) );
+	// 	// select image settings
+	// 	$where_image_settings = array(	'context = :c'	=> array( 'c' => 'setting' ),
+	// 									'type = :t'		=> array( 't' => 'image_setting' ) );
+	// 	// transfer settings
+	// 	foreach( array( $where_shopp_settings, $where_image_settings ) as $condition )
+	// 	{
+	// 		$select = $this->dbNew->select( 'wp_shopp_meta', '*', $condition );
+	// 		while( $result = $select->fetch() ) { // false = fetch array
+	// 			// if( !strpos('catskin_importer_', $result->name ) )
+	// 			// {
+	// 				$new_setting = new ShoppSettingMeta( $result );
+	// 				$this->dbTemp->create( 'wp_shopp_meta', (array) $new_setting );
+	// 			// }
+
+	// 		}
+	// 		unset( $result, $select );
+	// 	}
+	// }
 
 	public function convert_wp_shopp_category()
 	{
