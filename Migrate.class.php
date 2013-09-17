@@ -175,6 +175,8 @@ class Shopp_Migrate_Script
 
 	public function convert_wp_shopp_category()
 	{
+		update_option('shopp_category_children', '');
+
 		// load temp wordpress
 		if( !$this->using_wordpress ) $this->load_wordpress( 'vanilla_migrate' );
 
@@ -201,12 +203,7 @@ class Shopp_Migrate_Script
 
 		$this->process_categories( $sorted_categories );
 
-		// update cached category children in wp_options
-		$this->dbTemp->update(
-			'wp_options', array(
-				'option_value' => serialize( $this->category_heirarchy ) ),
-			'shopp_category_children', 'option_name'
-		);
+
 
 		// TESTS
 
