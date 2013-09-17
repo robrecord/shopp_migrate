@@ -65,8 +65,8 @@ class Shopp_Migrate_Script
 
 		// if( $plugin_path ) $this->plugin_path = $plugin_path;
 		// $this->connect( 'seita_vanilla_119', 'dbOld' );
-		$this->connect( 'seita_hostgator_clone', 'dbOld' );
-		$this->connect( 'seita_vanilla_125', 'dbNew' );
+		$this->connect( 'seita_rackspace_clone', 'dbOld' );
+		// $this->connect( 'seita_vanilla_125', 'dbNew' );
 		$this->connect( 'seita_vanilla_migrate', 'dbTemp' );
 	}
 
@@ -181,9 +181,6 @@ class Shopp_Migrate_Script
 		// get old products
 		$old_shopp_categories = $this->dbOld->select( 'wp_shopp_category' )->all();
 
-		$new_term_taxonomy = $this->dbNew->read( 'wp_term_taxonomy','shopp_category','taxonomy' )->all();
-		$new_terms = $this->dbNew->select( 'wp_terms' )->all();
-
 		// check shopp_category taxonomy exists
 		if( !taxonomy_exists( 'shopp_category' ) )
 		{
@@ -225,6 +222,8 @@ class Shopp_Migrate_Script
 		// $this->compare( array( $old_shopp_categories, $temp_category_meta, $new_category_meta ) );
 		// $this->compare( array( $old_shopp_categories, get_terms( array( 'shopp_category' ), 'hide_empty=0' ) ) );
 
+		// $new_term_taxonomy = $this->dbNew->read( 'wp_term_taxonomy','shopp_category','taxonomy' )->all();
+		// $new_terms = $this->dbNew->select( 'wp_terms' )->all();
 		// echo "term_taxonomy (temp, new)";
 		// $this->compare( array( $temp_term_taxonomy, $new_term_taxonomy ) );
 		// echo "terms (temp, new)";
