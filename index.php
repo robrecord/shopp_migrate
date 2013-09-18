@@ -2,15 +2,20 @@
 
 $plugin_path = $this->thispluginpath;
 
+if (PHP_SAPI != 'cli' && !DEV) {
+	?><link rel="stylesheet" href="<?php echo $this->thispluginurl ?>dev.css"><?php
+}
+
+if (array_key_exists('migrate', $_POST)) {
+	switch ($_POST('migrate')) {
+		case 'Go':
+
+
 require_once @$plugin_path.'Dev.class.php';
 
 Dev::start(@$plugin_path, false, 'md');
 
 require_once @$plugin_path.'Migrate.class.php';
-
-if (PHP_SAPI != 'cli' && !DEV) {
-	?><link rel="stylesheet" href="<?php echo $this->thispluginurl ?>dev.css"><?php
-}
 
 if (class_exists('Shopp_Migrate_Script')) {
 	$Migrate = new Shopp_Migrate_Script(true, $plugin_path, $this->thispluginurl);
@@ -32,5 +37,12 @@ if (class_exists('Shopp_Migrate_Script')) {
 }
 
 Dev::end('md');
-?>
 
+	}
+}
+
+?>
+<form action="" method="post">
+	<input type="submit" name="migrate" value="Go" />
+</form>
+<?php
