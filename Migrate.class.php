@@ -175,7 +175,7 @@ class Shopp_Migrate_Script
 
 	public function convert_wp_shopp_category()
 	{
-		update_option('shopp_category_children', '');
+		// update_option('shopp_category_children', '');
 
 		// load temp wordpress
 		if( !$this->using_wordpress ) $this->load_wordpress( 'vanilla_migrate' );
@@ -195,6 +195,8 @@ class Shopp_Migrate_Script
 			wp_delete_term( (int) $category->term_id, 'shopp_category' );
 		}
 
+		delete_option('shopp_category_children');
+
 		$this->cache->old_categories = array();
 
 		$sorted_categories = $this->organize( $old_shopp_categories );
@@ -203,7 +205,8 @@ class Shopp_Migrate_Script
 
 		$this->process_categories( $sorted_categories );
 
-
+		delete_option('shopp_category_children');
+		wp_cache_flush();
 
 		// TESTS
 
@@ -213,8 +216,8 @@ class Shopp_Migrate_Script
 		// $new_category_meta = $this->dbNew->read( 'wp_shopp_meta','category','context' )->all();
 		// $this->compare( array( $old_shopp_categories, $temp_category_meta, $new_category_meta ) );
 
-		$temp_term_taxonomy = $this->dbTemp->read( 'wp_term_taxonomy','shopp_category','taxonomy' )->all();
-		$temp_terms = $this->dbTemp->select( 'wp_terms' )->all();
+		// $temp_term_taxonomy = $this->dbTemp->read( 'wp_term_taxonomy','shopp_category','taxonomy' )->all();
+		// $temp_terms = $this->dbTemp->select( 'wp_terms' )->all();
 
 		// $this->compare( array( $old_shopp_categories, $temp_category_meta, $new_category_meta ) );
 		// $this->compare( array( $old_shopp_categories, get_terms( array( 'shopp_category' ), 'hide_empty=0' ) ) );
