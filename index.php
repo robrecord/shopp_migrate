@@ -32,8 +32,8 @@ if (class_exists('Shopp_Migrate_Script')) {
 	$Migrate->convert('wp_shopp_images');
 	$Migrate->convert('wp_shopp_price');
 	$Migrate->convert('wp_shopp_summary');
-	// $Migrate->reindex_products();
-	wp_cache_flush();
+	$Migrate->reindex_products();
+	// wp_cache_flush();
 }
 
 Dev::end('md');

@@ -195,7 +195,7 @@ class Shopp_Migrate_Script
 			wp_delete_term( (int) $category->term_id, 'shopp_category' );
 		}
 
-		delete_option('shopp_category_children');
+		// delete_option('shopp_category_children');
 
 		$this->cache->old_categories = array();
 
@@ -206,7 +206,7 @@ class Shopp_Migrate_Script
 		$this->process_categories( $sorted_categories );
 
 		delete_option('shopp_category_children');
-		wp_cache_flush();
+		// wp_cache_flush();
 
 		// TESTS
 
