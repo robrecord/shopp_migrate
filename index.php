@@ -7,7 +7,7 @@ if (PHP_SAPI != 'cli' && !DEV) {
 }
 
 if (array_key_exists('migrate', $_POST)) {
-	switch ($_POST('migrate')) {
+	switch ($_POST['migrate']) {
 		case 'Go':
 
 
@@ -19,6 +19,8 @@ require_once @$plugin_path.'Migrate.class.php';
 
 if (class_exists('Shopp_Migrate_Script')) {
 	$Migrate = new Shopp_Migrate_Script(true, $plugin_path, $this->thispluginurl);
+
+	echo "Starting...".PHP_EOL;
 
 	$Migrate->save_wp_shopp_setting();
 	$Migrate->reset_tables();
@@ -34,9 +36,12 @@ if (class_exists('Shopp_Migrate_Script')) {
 	$Migrate->convert('wp_shopp_summary');
 	$Migrate->reindex_products();
 	// wp_cache_flush();
+	echo "Done.".PHP_EOL;
 }
 
 Dev::end('md');
+
+break;
 
 	}
 }
